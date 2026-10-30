@@ -18,6 +18,7 @@ from .notify import notify  # noqa: E402
 from .overlay import CaptureSession, image_clipboard_content  # noqa: E402
 from .portal import ScreenshotError  # noqa: E402
 from .recent import RecentLinks  # noqa: E402
+from .settings_store import import_flameshot_token  # noqa: E402
 from .toast import show_toast  # noqa: E402
 from .toolbar import CSS  # noqa: E402
 from .pipeline import deliver  # noqa: E402
@@ -55,6 +56,11 @@ class CaptureApp(Gtk.Application):
             self.tray.start()
         except Exception as e:  # no tray host: the app still works through the shortcut
             _debug(f"tray unavailable: {e}")
+        try:  # keep working after Flameshot is uninstalled
+            if import_flameshot_token():
+                _debug("copied the upload token from Flameshot's config")
+        except Exception as e:
+            _debug(f"token import failed: {type(e).__name__}")
 
     def do_command_line(self, command_line):
         args = command_line.get_arguments()[1:]

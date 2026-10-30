@@ -1,4 +1,7 @@
-"""The GNOME custom keybinding that triggers a capture. Only our own entry is ever modified."""
+"""The GNOME custom keybinding that triggers a capture.
+
+Only our own entry is edited, except that --install-shortcut takes our key back from a Flameshot
+entry (`release_from_flameshot` blanks its binding, leaving its name and command in place)."""
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -83,6 +86,18 @@ def find_conflict(store, accel: str) -> str | None:
         if any(a and _parse(a) == want for a in accels):
             return name
     return None
+
+
+def release_from_flameshot(store, accel: str) -> bool:
+    """Clear `accel` from Flameshot's custom keybinding(s). Returns True if any changed."""
+    want = _parse(accel)
+    changed = False
+    for path in store.custom_paths():
+        c = store.custom(path)
+        if "flameshot" in c["command"].lower() and c["binding"] and _parse(c["binding"]) == want:
+            store.set_custom(path, binding="")
+            changed = True
+    return changed
 
 
 def free_gnome_print() -> bool:

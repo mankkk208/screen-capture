@@ -37,6 +37,8 @@ Token **không** nằm trong repo. App tìm token theo thứ tự:
    ```
 2. `customUploadToken` trong `~/.config/flameshot/flameshot.ini` (nếu đã dùng bản Flameshot của Avada).
 
+   Khi cài (`scripts/install.sh`) và mỗi lần app khởi động, token này được tự copy sang `config.ini` (nếu `config.ini` chưa có token), nên gỡ Flameshot sau đó vẫn dùng tiếp được, không phải điền lại. Endpoint của Flameshot bản Avada giống `upload_url` mặc định.
+
 ## Cách dùng
 
 `Print` (đổi được trong Cài đặt) mở overlay trên tất cả monitor. Monitor dưới chuột có viền trắng đứt đoạn, các monitor còn lại bị làm tối.

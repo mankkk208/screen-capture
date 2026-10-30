@@ -4,10 +4,11 @@ import unittest
 from pathlib import Path
 
 from screen_capture.keybinding import (
-    BINDING_NAME, current_shortcut, ensure_shortcut, find_conflict, find_ours, validate_accel,
+    BINDING_NAME, current_shortcut, ensure_shortcut, find_conflict, find_ours, release_from_flameshot,
+    validate_accel,
 )
 from screen_capture.recent import RecentLinks
-from screen_capture.settings_store import read_settings, save_settings, validate_endpoint
+from screen_capture.settings_store import import_flameshot_token, read_settings, save_settings, validate_endpoint
 from screen_capture.tray_menu import MenuItem, build_layout
 
 OUR_CMD = "gdbus call --session --dest io.avada.ScreenCapture --object-path /io/avada/ScreenCapture " \
@@ -32,6 +33,35 @@ class RecentLinksTest(unittest.TestCase):
 class SettingsStoreTest(unittest.TestCase):
     def setUp(self):
         self.path = Path(tempfile.mkdtemp()) / "screen-capture" / "config.ini"
+
+    def _flameshot(self, text):
+        fs = self.path.parent.parent / "flameshot" / "flameshot.ini"
+        fs.parent.mkdir(parents=True, exist_ok=True)
+        fs.write_text(text)
+        return fs
+
+    def test_import_flameshot_token_copies_it_once(self):
+        fs = self._flameshot("[General]\ncustomUploadToken=from-flameshot\n")
+        self.assertTrue(import_flameshot_token(self.path, fs))
+        s = read_settings(self.path)
+        self.assertEqual((s.token, s.upload_url), ("from-flameshot", "https://capture-api.avada.io/api/v1/upload"))
+        self.assertEqual(self.path.stat().st_mode & 0o077, 0)
+        fs.unlink()  # Flameshot uninstalled: the token stays
+        self.assertFalse(import_flameshot_token(self.path, fs))
+        self.assertEqual(read_settings(self.path).token, "from-flameshot")
+
+    def test_import_flameshot_token_keeps_own_settings(self):
+        save_settings(self.path, token="own", upload_url="https://example.com/up")
+        fs = self._flameshot("[General]\ncustomUploadToken=from-flameshot\n")
+        self.assertFalse(import_flameshot_token(self.path, fs))
+        s = read_settings(self.path)
+        self.assertEqual((s.token, s.upload_url), ("own", "https://example.com/up"))
+
+    def test_import_flameshot_token_without_flameshot(self):
+        self.assertFalse(import_flameshot_token(self.path, self.path.parent / "missing.ini"))
+        self.assertFalse(self.path.exists())
+        self.assertFalse(import_flameshot_token(self.path, self._flameshot("[General]\nother=1\n")))
+        self.assertFalse(import_flameshot_token(self.path, self._flameshot("not an ini")))
 
     def test_save_then_read_roundtrip(self):
         save_settings(self.path, token="tok-1", upload_url="https://example.com/up")
@@ -124,6 +154,16 @@ class KeybindingTest(unittest.TestCase):
     def test_conflict_with_system_binding(self):
         store = FakeStore(others={"Lock screen": ["<Super>l"]})
         self.assertEqual(find_conflict(store, "<Super>l"), "Lock screen")
+
+    def test_release_from_flameshot_clears_only_flameshot_on_our_key(self):
+        other = {"name": "Other", "command": "kgx", "binding": "Print"}
+        store = FakeStore({BASE + "custom1/": FLAMESHOT, BASE + "custom2/": other,
+                           BASE + "custom0/": {"name": BINDING_NAME, "command": OUR_CMD, "binding": "Print"}})
+        self.assertTrue(release_from_flameshot(store, "Print"))
+        self.assertEqual(store.custom(BASE + "custom1/"), dict(FLAMESHOT, binding=""))
+        self.assertEqual(store.custom(BASE + "custom2/"), other)
+        self.assertEqual(current_shortcut(store), "Print")
+        self.assertFalse(release_from_flameshot(store, "Print"))
 
     def test_own_binding_is_not_a_conflict(self):
         store = FakeStore({BASE + "custom0/": {"name": BINDING_NAME, "command": OUR_CMD, "binding": "<Control><Alt>s"}})

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
 
-from .config import DEFAULT_OWN_PATH, DEFAULT_UPLOAD_URL
+from .config import DEFAULT_FLAMESHOT_PATH, DEFAULT_OWN_PATH, DEFAULT_UPLOAD_URL, ConfigError, _read
 
 SECTION = "General"
 
@@ -46,6 +46,22 @@ def save_settings(path: Path = DEFAULT_OWN_PATH, *, token: str, upload_url: str)
         p.write(f)
     os.replace(tmp, path)
     os.chmod(path, 0o600)
+
+
+def import_flameshot_token(path: Path = DEFAULT_OWN_PATH, flameshot_path: Path = DEFAULT_FLAMESHOT_PATH) -> bool:
+    """Copy Flameshot's upload token into our config if we have none, so Flameshot can be uninstalled.
+
+    Its endpoint is built into the Flameshot binary and equals DEFAULT_UPLOAD_URL. Returns True if copied."""
+    if read_settings(path).token:
+        return False
+    try:
+        token = _read(Path(flameshot_path)).get("General", "customUploadToken", fallback="").strip()
+    except ConfigError:
+        return False
+    if not token:
+        return False
+    save_settings(path, token=token, upload_url=read_settings(path).upload_url)
+    return True
 
 
 def validate_endpoint(url: str) -> str | None:

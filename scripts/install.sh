@@ -2,7 +2,7 @@
 # Install Screen Capture for the current user. Idempotent.
 #   scripts/install.sh               D-Bus service, app entry, Print shortcut
 #   scripts/install.sh --autostart   ...and launch on startup
-# Never modifies other custom keybindings (Flameshot stays on Print).
+# Takes the key back from Flameshot's custom keybinding (its entry stays); other keybindings are untouched.
 set -euo pipefail
 
 PROJECT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -37,11 +37,14 @@ Name=Settings
 Exec=/usr/bin/env PYTHONPATH=$PROJECT python3 -m screen_capture --settings
 DESKTOP
 
-# 3. GNOME custom keybinding (Print unless already set). Only our own entry is touched;
+# 3. GNOME custom keybinding (Print unless already set), taken back from Flameshot if it holds it;
 #    the logic lives in screen_capture/keybinding.py, shared with the Settings window.
 (cd "$PROJECT" && python3 -m screen_capture --install-shortcut)
 
-# 4. Optional: launch on startup.
+# 4. Copy Flameshot's upload token into our config (if we have none), so Flameshot can be removed.
+(cd "$PROJECT" && python3 -m screen_capture --import-flameshot)
+
+# 5. Optional: launch on startup.
 if [[ "${1:-}" == "--autostart" ]]; then
     (cd "$PROJECT" && python3 -m screen_capture --autostart on)
 fi
