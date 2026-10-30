@@ -35,7 +35,10 @@ def _portal_surface() -> cairo.ImageSurface:
 
 
 def _screencast(monitors):
-    from .screencast import grab_monitors
+    try:
+        from .screencast import grab_monitors
+    except (ImportError, ValueError) as e:  # GStreamer typelib missing: use the portal instead
+        raise ScreenshotError(f"screencast unavailable: {e}") from None
 
     return grab_monitors(monitors)
 

@@ -37,10 +37,9 @@ def _read(path: Path) -> configparser.ConfigParser:
 
 def load_config(own_path: Path = DEFAULT_OWN_PATH, flameshot_path: Path = DEFAULT_FLAMESHOT_PATH) -> Config:
     own = _read(Path(own_path))
-    flame = _read(Path(flameshot_path))
-    token = own.get("General", "token", fallback="").strip() or flame.get(
-        "General", "customUploadToken", fallback=""
-    ).strip()
+    token = own.get("General", "token", fallback="").strip()
+    if not token:  # only touch Flameshot's config when we need its token
+        token = _read(Path(flameshot_path)).get("General", "customUploadToken", fallback="").strip()
     if not token:
         raise ConfigError(
             f"upload token not configured: set 'token' in {own_path} or customUploadToken in {flameshot_path}"

@@ -44,13 +44,19 @@ def show_toast(app: Gtk.Application, title: str, detail: str, on_focus, on_no_fo
             state["focused"] = True
             on_focus()
 
+    def close():
+        if not state.get("closed"):
+            state["closed"] = True
+            win.destroy()
+        return False
+
     def check_focus():
         if not state["focused"]:
-            win.destroy()
+            close()
             on_no_focus()
         return False
 
     win.connect("notify::is-active", on_active)
     win.present()
     GLib.timeout_add(FOCUS_WAIT_MS, check_focus)
-    GLib.timeout_add(SHOW_MS, lambda: (win.destroy(), False)[1])
+    GLib.timeout_add(SHOW_MS, close)

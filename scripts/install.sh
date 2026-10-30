@@ -46,7 +46,10 @@ raw = get(SCHEMA, "custom-keybindings")
 paths = [] if raw.startswith("@as") else ast.literal_eval(raw)
 ours = None
 for p in paths:
-    if ast.literal_eval(get(f"{ITEM}:{p}", "name")) == name:
+    # Ours = same name AND our app id in the command, so a user binding that happens to be
+    # called "Screen Capture" is never taken over.
+    if (ast.literal_eval(get(f"{ITEM}:{p}", "name")) == name
+            and "io.avada.ScreenCapture" in ast.literal_eval(get(f"{ITEM}:{p}", "command"))):
         ours = p
 if ours is None:
     n = 0

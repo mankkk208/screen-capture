@@ -56,5 +56,17 @@ def crop_rect(monitor: Monitor, sel: Rect, image_scale: float) -> PixelRect:
     return PixelRect(left, top, max(1, right - left), max(1, bottom - top))
 
 
+def clamp_pixel_rect(p: PixelRect, width: int, height: int) -> PixelRect:
+    """Keep a crop inside an image (rounding at fractional scales can overshoot by a pixel)."""
+    x = min(max(p.x, 0), width - 1)
+    y = min(max(p.y, 0), height - 1)
+    return PixelRect(x, y, max(1, min(p.w, width - x)), max(1, min(p.h, height - y)))
+
+
+def is_sliver(r: Rect, min_size: float = 4.0) -> bool:
+    """A drag this thin is almost certainly a slip, not a region worth capturing."""
+    return min(r.w, r.h) < min_size
+
+
 def is_click(press: tuple[float, float], release: tuple[float, float], threshold: float = 5.0) -> bool:
     return (release[0] - press[0]) ** 2 + (release[1] - press[1]) ** 2 <= threshold**2

@@ -13,7 +13,7 @@ from gi.repository import Gdk, GLib, GObject, Gtk, Pango, PangoCairo  # noqa: E4
 import cairo  # noqa: E402
 
 from .annotations import Arrow, Blur, Ellipse, Highlighter, History, Line, Pen, Rectangle, Step, Style, Text, font_size  # noqa: E402,E501
-from .geometry import Monitor, Rect, clamp_to_monitor, is_click  # noqa: E402
+from .geometry import Monitor, Rect, clamp_to_monitor, is_click, is_sliver  # noqa: E402
 from .toolbar import KEY_TO_TOOL, RED, WIDTHS, Toolbar  # noqa: E402
 
 SCRIM = (0.008, 0.024, 0.09, 0.55)  # slate-950 at 55%
@@ -319,8 +319,10 @@ class OverlayWindow(Gtk.Window):
             self.selection = None
             if click:
                 self._click(p1)
-            else:
+            elif not is_sliver(_rect(p0, p1)):
                 self.session.finish(self.monitor, clamp_to_monitor(self.monitor, _rect(p0, p1)))
+            else:
+                self.sync()  # a slip of the mouse: keep the overlay open
             return
         if tool == "step" and click:
             self.history.add(Step(p1, self.history.next_step_number(), self.session.style))

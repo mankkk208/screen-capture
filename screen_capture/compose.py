@@ -3,13 +3,13 @@ import io
 
 import cairo
 
-from .geometry import Monitor, Rect, crop_rect
+from .geometry import Monitor, Rect, clamp_pixel_rect, crop_rect
 
 
 def render_surface(backdrop: cairo.ImageSurface, sel: Rect, image_scale: float, shapes: list) -> cairo.ImageSurface:
     """`backdrop` is one monitor's pixels; `sel` and shapes are monitor-local logical coordinates."""
     origin = Monitor("", 0, 0, backdrop.get_width() / image_scale, backdrop.get_height() / image_scale, image_scale)
-    p = crop_rect(origin, sel, image_scale)
+    p = clamp_pixel_rect(crop_rect(origin, sel, image_scale), backdrop.get_width(), backdrop.get_height())
     out = cairo.ImageSurface(cairo.FORMAT_RGB24, p.w, p.h)
     cr = cairo.Context(out)
     cr.translate(-p.x, -p.y)

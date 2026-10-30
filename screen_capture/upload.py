@@ -54,10 +54,12 @@ def upload_png(png: bytes, cfg: Config, session=None, timeout: float = 20.0) -> 
 def save_failed(png: bytes, cfg: Config) -> Path:
     cfg.save_dir.mkdir(parents=True, exist_ok=True)
     stem = time.strftime("capture-%Y%m%d-%H%M%S")
-    path = cfg.save_dir / f"{stem}.png"
-    n = 1
-    while path.exists():
-        path = cfg.save_dir / f"{stem}-{n}.png"
-        n += 1
-    path.write_bytes(png)
-    return path
+    n = 0
+    while True:
+        path = cfg.save_dir / (f"{stem}.png" if n == 0 else f"{stem}-{n}.png")
+        try:
+            with open(path, "xb") as f:  # exclusive create: two failures in the same second can't collide
+                f.write(png)
+            return path
+        except FileExistsError:
+            n += 1

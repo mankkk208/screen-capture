@@ -10,6 +10,7 @@ from gi.repository import Gio, GLib, Gst  # noqa: E402
 
 from .geometry import Monitor  # noqa: E402
 from .portal import ScreenshotError  # noqa: E402
+from .screencast_geometry import LAYOUT_PHYSICAL, record_area_rect  # noqa: E402
 
 BUS = "org.gnome.Mutter.ScreenCast"
 SESSION_IFACE = "org.gnome.Mutter.ScreenCast.Session"
@@ -21,6 +22,16 @@ Gst.init(None)
 def _call(bus, path, iface, method, params, timeout_s):
     return bus.call_sync(BUS, path, iface, method, params, None, Gio.DBusCallFlags.NONE,
                          int(timeout_s * 1000), None)
+
+
+def _physical_layout(bus) -> bool:
+    try:
+        state = bus.call_sync("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig",
+                              "org.gnome.Mutter.DisplayConfig", "GetCurrentState", None, None,
+                              Gio.DBusCallFlags.NONE, 1000, None).unpack()
+        return state[3].get("layout-mode") == LAYOUT_PHYSICAL
+    except GLib.Error:
+        return False
 
 
 def grab_monitors(monitors: list[Monitor], timeout_s: float = 3.0) -> dict:
@@ -38,10 +49,11 @@ def grab_monitors(monitors: list[Monitor], timeout_s: float = 3.0) -> dict:
     subs = []
     try:
         streams = {}
+        physical = _physical_layout(bus)
         for m in monitors:
             opts = {"cursor-mode": GLib.Variant("u", CURSOR_HIDDEN)}
             path = _call(bus, session, SESSION_IFACE, "RecordArea",
-                         GLib.Variant("(iiiia{sv})", (int(m.x), int(m.y), int(m.width), int(m.height), opts)),
+                         GLib.Variant("(iiiia{sv})", (*record_area_rect(m, physical), opts)),
                          timeout_s)[0]
             streams[path] = m.name
 
