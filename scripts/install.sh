@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install Screen Capture for the current user. Idempotent.
-#   scripts/install.sh               D-Bus service, app entry, Ctrl+Alt+S shortcut
+#   scripts/install.sh               D-Bus service, app entry, Print shortcut
 #   scripts/install.sh --autostart   ...and launch on startup
 # Never modifies other custom keybindings (Flameshot stays on Print).
 set -euo pipefail
@@ -37,7 +37,7 @@ Name=Settings
 Exec=/usr/bin/env PYTHONPATH=$PROJECT python3 -m screen_capture --settings
 DESKTOP
 
-# 3. GNOME custom keybinding (Ctrl+Alt+S unless already set). Only our own entry is touched;
+# 3. GNOME custom keybinding (Print unless already set). Only our own entry is touched;
 #    the logic lives in screen_capture/keybinding.py, shared with the Settings window.
 (cd "$PROJECT" && python3 -m screen_capture --install-shortcut)
 
@@ -45,4 +45,4 @@ DESKTOP
 if [[ "${1:-}" == "--autostart" ]]; then
     (cd "$PROJECT" && python3 -m screen_capture --autostart on)
 fi
-echo "Installed. Press Ctrl+Alt+S to capture."
+echo "Installed. Press Print (or the shortcut set in Settings) to capture."

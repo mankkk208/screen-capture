@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-ShareX-style screenshot tool for the owner's Ubuntu 26.04 / GNOME 50 **Wayland-only** machine (monitors `eDP-1`, `HDMI-1`). `Ctrl+Alt+S` → frozen overlay on every monitor → click = that monitor, drag = region, annotate → upload to capture.avada.io and copy the link. Python 3.14 + GTK 4.22 (PyGObject) + pycairo; system packages only (`python3-gi-cairo` is required). The owner talks Vietnamese and wants commits only when asked.
+ShareX-style screenshot tool for the owner's Ubuntu 26.04 / GNOME 50 **Wayland-only** machine (monitors `eDP-1`, `HDMI-1`). `Print` (default, changeable in Settings; GNOME's own screenshot UI is unbound from Print by `--install-shortcut`) → frozen overlay on every monitor → click = that monitor, drag = region, annotate → upload to capture.avada.io and copy the link. Python 3.14 + GTK 4.22 (PyGObject) + pycairo; system packages only (`python3-gi-cairo` is required). The owner talks Vietnamese and wants commits only when asked.
 
 Spec: `docs/superpowers/specs/2026-10-30-screen-capture-design.md` (goals, anti-goals). Measured facts: `docs/superpowers/notes/`.
 
@@ -11,7 +11,7 @@ Spec: `docs/superpowers/specs/2026-10-30-screen-capture-design.md` (goals, anti-
 ```bash
 python3 -m unittest discover -s tests -v              # all tests (pytest is NOT installed)
 python3 -m unittest tests.test_geometry.GeometryTest.test_is_click_within_threshold_true   # one test
-scripts/install.sh [--autostart]                       # D-Bus service, app entry, Ctrl+Alt+S keybinding
+scripts/install.sh [--autostart]                       # D-Bus service, app entry, Print keybinding
 python3 -m screen_capture --background                 # start the resident app without capturing
 python3 -m screen_capture --quit                       # stop it (needed after code changes: it is long-lived)
 SC_DEBUG=1 python3 -m screen_capture --background      # timing logs on stderr

@@ -2,7 +2,7 @@
 
 Công cụ chụp màn hình kiểu ShareX cho GNOME trên **Wayland** (Ubuntu 26.04 / GNOME 50). Bấm một phím tắt, màn hình đóng băng trên mọi monitor; click để chụp monitor dưới chuột, kéo để chọn vùng, vẽ chú thích nếu cần. Ảnh được upload lên capture.avada.io và link được copy vào clipboard, không có hộp thoại xác nhận nào.
 
-![Overlay khi bấm Ctrl+Alt+S: màn hình đóng băng, toolbar ở trên, gợi ý thao tác ở dưới](docs/images/overlay-select.png)
+![Overlay khi bấm Print: màn hình đóng băng, toolbar ở trên, gợi ý thao tác ở dưới](docs/images/overlay-select.png)
 
 ## Cài đặt
 
@@ -15,11 +15,11 @@ sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0 gir1.2-gstreamer-1.0
 Rồi trong thư mục project:
 
 ```bash
-scripts/install.sh              # phím tắt Ctrl+Alt+S, D-Bus service, entry trong app grid
+scripts/install.sh              # phím tắt Print, D-Bus service, entry trong app grid
 scripts/install.sh --autostart  # như trên, và chạy nền sẵn khi đăng nhập
 ```
 
-Script cài đặt có thể chạy lại nhiều lần mà không tạo thêm phím tắt. Nó chỉ thêm và cập nhật phím tắt của chính mình, không đụng tới các phím tắt khác (ví dụ Flameshot trên `Print`). App chạy trực tiếp từ thư mục này, nên nếu di chuyển thư mục thì chạy lại `install.sh`.
+Script cài đặt có thể chạy lại nhiều lần mà không tạo thêm phím tắt. Nó chỉ thêm và cập nhật phím tắt của chính mình. Ngoại lệ duy nhất: khi phím của app là `Print`, nó gỡ `Print` khỏi giao diện chụp màn hình có sẵn của GNOME để hai bên không tranh nhau (`Shift+Print` / `Alt+Print` của GNOME vẫn giữ nguyên). App chạy trực tiếp từ thư mục này, nên nếu di chuyển thư mục thì chạy lại `install.sh`.
 
 ### Token upload
 
@@ -39,7 +39,7 @@ Token **không** nằm trong repo. App tìm token theo thứ tự:
 
 ## Cách dùng
 
-`Ctrl+Alt+S` mở overlay trên tất cả monitor. Monitor dưới chuột có viền trắng đứt đoạn, các monitor còn lại bị làm tối.
+`Print` (đổi được trong Cài đặt) mở overlay trên tất cả monitor. Monitor dưới chuột có viền trắng đứt đoạn, các monitor còn lại bị làm tối.
 
 | Thao tác | Kết quả |
 |---|---|

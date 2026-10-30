@@ -164,3 +164,18 @@ class TrayNodeTest(unittest.TestCase):
         props = item_props(MenuItem(7, "https://x/a_b"))
         self.assertEqual(props["label"].unpack(), "https://x/a__b")
         self.assertTrue(props["enabled"].unpack())
+
+
+class StandaloneKeyTest(unittest.TestCase):
+    def test_non_text_keys_allowed_without_modifier(self):
+        for accel in ("Print", "F9", "Pause", "<Shift>Print"):
+            self.assertIsNone(validate_accel(accel), accel)
+
+    def test_text_keys_still_need_ctrl_alt_or_super(self):
+        for accel in ("s", "<Shift>s", "space", "1"):
+            self.assertIsNotNone(validate_accel(accel), accel)
+
+    def test_default_shortcut_is_print(self):
+        from screen_capture.keybinding import DEFAULT_ACCEL
+
+        self.assertEqual(DEFAULT_ACCEL, "Print")

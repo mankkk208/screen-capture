@@ -9,7 +9,7 @@ APP_ID = "io.avada.ScreenCapture"
 BINDING_NAME = "Screen Capture"
 TRIGGER = (f"gdbus call --session --dest {APP_ID} --object-path /io/avada/ScreenCapture "
            "--method org.freedesktop.Application.Activate {}")
-DEFAULT_ACCEL = "<Control><Alt>s"
+DEFAULT_ACCEL = "Print"
 
 MEDIA_KEYS = "org.gnome.settings-daemon.plugins.media-keys"
 CUSTOM_SCHEMA = "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
@@ -25,10 +25,12 @@ def _parse(accel: str):
 
 
 def validate_accel(accel: str) -> str | None:
-    parsed = Gtk.accelerator_parse(accel)
-    if not parsed[0] or not parsed[1]:
+    ok, key, mods = Gtk.accelerator_parse(accel)
+    if not ok or not key:
         return "Not a valid shortcut"
-    if not parsed[2] & REQUIRED_MODS:
+    # Keys that type text (letters, digits, space…) need Ctrl/Alt/Super; keys like Print or F9 don't.
+    types_text = Gdk.keyval_to_unicode(key) != 0
+    if types_text and not mods & REQUIRED_MODS:
         return "Use at least one of Ctrl, Alt or Super"
     return None
 
@@ -81,6 +83,17 @@ def find_conflict(store, accel: str) -> str | None:
         if any(a and _parse(a) == want for a in accels):
             return name
     return None
+
+
+def free_gnome_print() -> bool:
+    """GNOME binds Print to its screenshot UI; unbind it there when Print is ours. Returns True if changed."""
+    shell = Gio.Settings.new("org.gnome.shell.keybindings")
+    current = list(shell.get_strv("show-screenshot-ui"))
+    if "Print" not in current:
+        return False
+    shell.set_strv("show-screenshot-ui", [a for a in current if a != "Print"])
+    Gio.Settings.sync()
+    return True
 
 
 class GSettingsStore:

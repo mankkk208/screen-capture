@@ -20,11 +20,13 @@ def main(argv: list[str]) -> int:
         return 0
 
     if "--install-shortcut" in argv:
-        from .keybinding import DEFAULT_ACCEL, GSettingsStore, current_shortcut, ensure_shortcut
+        from .keybinding import DEFAULT_ACCEL, GSettingsStore, current_shortcut, ensure_shortcut, free_gnome_print
 
         store = GSettingsStore()
         path = ensure_shortcut(store, current_shortcut(store) or DEFAULT_ACCEL)
         print(f"shortcut {current_shortcut(store)} -> {path}")
+        if current_shortcut(store) == "Print" and free_gnome_print():
+            print("Print now opens Screen Capture (GNOME's own screenshot UI was unbound from Print).")
         return 0
 
     from .app import CaptureApp
