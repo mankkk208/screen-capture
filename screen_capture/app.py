@@ -17,6 +17,7 @@ from .geometry import Monitor  # noqa: E402
 from .notify import notify  # noqa: E402
 from .overlay import CaptureSession, image_clipboard_content  # noqa: E402
 from .portal import ScreenshotError  # noqa: E402
+from .recent import RecentLinks  # noqa: E402
 from .toast import show_toast  # noqa: E402
 from .toolbar import CSS  # noqa: E402
 from .pipeline import deliver  # noqa: E402
@@ -36,6 +37,9 @@ class CaptureApp(Gtk.Application):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.session: CaptureSession | None = None
         self._capturing = False
+        self.recent = RecentLinks(5)
+        self.tray = None
+        self.settings_window = None
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -44,14 +48,79 @@ class CaptureApp(Gtk.Application):
         provider.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER + 100)  # above ~/.config/gtk-4.0/gtk.css themes
+        try:
+            from .tray import Tray
+
+            self.tray = Tray(self._tray_items)
+            self.tray.start()
+        except Exception as e:  # no tray host: the app still works through the shortcut
+            _debug(f"tray unavailable: {e}")
 
     def do_command_line(self, command_line):
         args = command_line.get_arguments()[1:]
         if "--quit" in args:
             self.quit()
+        elif "--settings" in args:
+            self.open_settings()
         elif "--background" not in args:
             self.start_session()
         return 0
+
+    # ---- tray menu and settings ------------------------------------------------
+
+    def _tray_items(self):
+        from .keybinding import GSettingsStore, current_shortcut, label
+        from .tray_menu import MenuItem
+
+        try:
+            accel = current_shortcut(GSettingsStore())
+        except Exception:
+            accel = None
+        capture = "Capture" + (f"    {label(accel)}" if accel else "")
+        links = [MenuItem(100 + i, url, on_click=lambda u=url: self._copy_link(u))
+                 for i, url in enumerate(self.recent.items())]
+        recent = links or [MenuItem(99, "No links yet", enabled=False)]
+        return [
+            # Small delay so the menu has closed before the screen is frozen.
+            MenuItem(1, capture, on_click=lambda: GLib.timeout_add(250, lambda: (self.start_session(), False)[1])),
+            MenuItem(2, "", separator=True),
+            MenuItem(3, "Recent links", children=recent),
+            MenuItem(4, "Open failed uploads folder", on_click=self._open_failed_folder),
+            MenuItem(5, "", separator=True),
+            MenuItem(6, "Settings…", on_click=self.open_settings),
+            MenuItem(7, "Quit", on_click=self.quit),
+        ]
+
+    def _copy_link(self, url: str) -> None:
+        show_toast(self, "Link copied", url, lambda: _set_clipboard_text(url),
+                   lambda: notify("Could not copy the link", url, icon="dialog-warning"))
+
+    def _open_failed_folder(self) -> None:
+        from .config import DEFAULT_SAVE_DIR
+
+        try:
+            folder = load_config().save_dir
+        except Exception:
+            folder = DEFAULT_SAVE_DIR
+        folder.mkdir(parents=True, exist_ok=True)
+        Gio.AppInfo.launch_default_for_uri(folder.as_uri(), None)
+
+    def open_settings(self) -> None:
+        if self.settings_window is None:
+            from .settings_window import SettingsWindow
+
+            self.settings_window = SettingsWindow(self, self._settings_saved)
+            self.settings_window.connect("close-request", self._settings_closed)
+        self.settings_window.present()
+
+    def _settings_closed(self, *_a) -> bool:
+        self.settings_window = None
+        return False
+
+    def _settings_saved(self) -> None:
+        if self.tray:
+            self.tray.refresh()  # the Capture item shows the shortcut
+        notify("Settings saved")
 
     def do_activate(self):
         self.start_session()
@@ -119,6 +188,9 @@ class CaptureApp(Gtk.Application):
             GLib.idle_add(self._failed, result)
 
     def _uploaded(self, url: str) -> bool:
+        self.recent.add(url)
+        if self.tray:
+            self.tray.refresh()
         if self.session is not None and not self.session.closed:
             # A new capture is open and has focus: copy directly, don't steal focus with a toast.
             _set_clipboard_text(url)

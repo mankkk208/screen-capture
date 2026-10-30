@@ -1,4 +1,5 @@
-"""python3 -m screen_capture [--background | --quit | --autostart on|off|status]"""
+"""python3 -m screen_capture [--background | --settings | --quit | --install-shortcut |
+                            --autostart on|off|status]"""
 import sys
 
 
@@ -16,6 +17,14 @@ def main(argv: list[str]) -> int:
         else:
             print("usage: --autostart on|off|status", file=sys.stderr)
             return 2
+        return 0
+
+    if "--install-shortcut" in argv:
+        from .keybinding import DEFAULT_ACCEL, GSettingsStore, current_shortcut, ensure_shortcut
+
+        store = GSettingsStore()
+        path = ensure_shortcut(store, current_shortcut(store) or DEFAULT_ACCEL)
+        print(f"shortcut {current_shortcut(store)} -> {path}")
         return 0
 
     from .app import CaptureApp
