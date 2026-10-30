@@ -2,6 +2,8 @@
 
 Công cụ chụp màn hình kiểu ShareX cho GNOME trên **Wayland** (Ubuntu 26.04 / GNOME 50). Bấm một phím tắt, màn hình đóng băng trên mọi monitor; click để chụp monitor dưới chuột, kéo để chọn vùng, vẽ chú thích nếu cần. Ảnh được upload lên capture.avada.io và link được copy vào clipboard, không có hộp thoại xác nhận nào.
 
+![Overlay khi bấm Ctrl+Alt+S: màn hình đóng băng, toolbar ở trên, gợi ý thao tác ở dưới](docs/images/overlay-select.png)
+
 ## Cài đặt
 
 Yêu cầu (đều là package hệ thống của Ubuntu):
@@ -20,6 +22,8 @@ scripts/install.sh --autostart  # như trên, và chạy nền sẵn khi đăng 
 Script cài đặt có thể chạy lại nhiều lần mà không tạo thêm phím tắt. Nó chỉ thêm và cập nhật phím tắt của chính mình, không đụng tới các phím tắt khác (ví dụ Flameshot trên `Print`). App chạy trực tiếp từ thư mục này, nên nếu di chuyển thư mục thì chạy lại `install.sh`.
 
 ### Token upload
+
+Cách dễ nhất: mở **Cài đặt** (từ icon trên thanh trên, hoặc chuột phải vào app trong app grid) và dán token vào.
 
 Token **không** nằm trong repo. App tìm token theo thứ tự:
 
@@ -47,6 +51,12 @@ Token **không** nằm trong repo. App tìm token theo thứ tự:
 
 Có thể vẽ trước rồi mới chọn vùng; chú thích sẽ nằm trong ảnh, toolbar thì không.
 
+![Chọn vùng kèm mũi tên, chữ, đánh số bước và làm mờ thông tin khách hàng](docs/images/overlay-annotate.png)
+
+Upload xong, link nằm sẵn trong clipboard:
+
+<p align="center"><img src="docs/images/toast.png" alt="Thông báo Link copied" width="440"></p>
+
 | Phím | Công cụ | Phím | Công cụ |
 |---|---|---|---|
 | `S` | Chọn / chụp (hoặc chuột phải) | `P` | Bút vẽ tự do |
@@ -59,12 +69,25 @@ Có thể vẽ trước rồi mới chọn vùng; chú thích sẽ nằm trong �
 
 Upload lỗi (mất mạng, token sai…): ảnh được lưu vào `~/Pictures/screen-capture-failed/` và notification báo đường dẫn.
 
+## Icon trên thanh trên và Cài đặt
+
+Khi app chạy nền, icon của nó nằm trên thanh trên (cần extension AppIndicator, Ubuntu bật sẵn). Menu gồm:
+
+- **Capture** — chụp (hiện kèm phím tắt đang dùng)
+- **Recent links** — 5 link upload gần nhất trong phiên này, bấm để copy lại
+- **Open failed uploads folder**
+- **Settings…** — token, endpoint upload, phím tắt chụp, chạy khi đăng nhập. Chỉ áp dụng khi bấm **Save**; endpoint phải là `https://`, phím tắt phải có Ctrl/Alt/Super và không trùng phím tắt khác.
+- **Quit** — tắt app nền (phím tắt sẽ tự bật lại app)
+
+<p align="center"><img src="docs/images/settings.png" alt="Cửa sổ Cài đặt" width="560"></p>
+
 ## Quản lý app
 
 ```bash
 python3 -m screen_capture --autostart on|off|status   # bật/tắt chạy khi đăng nhập
 python3 -m screen_capture --quit                      # tắt app đang chạy nền
 python3 -m screen_capture --background                # chạy nền mà không mở overlay
+python3 -m screen_capture --settings                  # mở cửa sổ Cài đặt
 ```
 
 ## Cách hoạt động

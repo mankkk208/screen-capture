@@ -15,6 +15,8 @@ scripts/install.sh [--autostart]                       # D-Bus service, app entr
 python3 -m screen_capture --background                 # start the resident app without capturing
 python3 -m screen_capture --quit                       # stop it (needed after code changes: it is long-lived)
 SC_DEBUG=1 python3 -m screen_capture --background      # timing logs on stderr
+python3 -m screen_capture --settings                   # open the Settings window
+python3 -m screen_capture --install-shortcut           # create/repair our keybinding (used by install.sh)
 python3 -m screen_capture --autostart on|off|status    # launch on login (optional, off by default)
 gdbus call --session --dest io.avada.ScreenCapture --object-path /io/avada/ScreenCapture \
   --method org.freedesktop.Application.Activate {}     # what the shortcut runs: open a capture
@@ -32,12 +34,15 @@ After editing code, restart the resident app (`--quit`, then `setsid python3 -m 
 
 **Output.** Upload: `pipeline.deliver` on a worker thread (render → `upload.upload_png` → on any failure `save_failed`, with a `$XDG_RUNTIME_DIR` fallback) → back on the main thread via `GLib.idle_add`. Clipboard can only be set while one of our windows has focus, so the link is copied by a small focused `toast.py` window (or directly if an overlay is open). Image copy sets the clipboard while the overlay still has focus, using `overlay.image_clipboard_content` (must be typed `Gdk.Texture`; a raw `GdkMemoryTexture` provider offers no image formats).
 
-**Config / token.** `config.load_config` reads `token` from `~/.config/screen-capture/config.ini`, else `customUploadToken` from `~/.config/flameshot/flameshot.ini`. The token is never in the repo; `Config.__repr__` redacts it, and error messages are fixed strings (never `str(exc)` from requests). Uploads use `allow_redirects=False` so `X-Avada-Token` can't leak to another host. Don't make repeated or malformed POSTs to the real API.
+**Tray and Settings.** `tray.py` speaks StatusNotifierItem + `com.canonical.dbusmenu` directly over Gio D-Bus (GNOME shows it via the `ubuntu-appindicators` extension; libappindicator is GTK3 and can't be loaded in this GTK4 process). The menu model and its D-Bus layout live in `tray_menu.py` (pure, tested); `app._tray_items` builds it and `tray.refresh()` emits `LayoutUpdated`. Recent links (`recent.py`) are per session only. `settings_window.py` is libadwaita (`Adw.init()` on first open; overlay CSS still wins at USER+100); nothing applies until Save. `keybinding.py` is the only code that edits GNOME keybindings (install.sh calls `--install-shortcut`): it finds our entry by name **and** app id, and checks conflicts against custom bindings and the wm/shell/media-keys/mutter schemas. To test the tray without clicking, act as the host: call `GetLayout`/`Event` on `/MenuBar` of the `org.kde.StatusNotifierItem-<pid>-1` name.
+
+**Config / token.** `config.load_config` reads `token` from `~/.config/screen-capture/config.ini` (written 0600 by `settings_store.save_settings`), else `customUploadToken` from `~/.config/flameshot/flameshot.ini`. The token is never in the repo; `Config.__repr__` redacts it, and error messages are fixed strings (never `str(exc)` from requests). Uploads use `allow_redirects=False` so `X-Avada-Token` can't leak to another host. Don't make repeated or malformed POSTs to the real API.
 
 ## Gotchas
 
-- Wayland only: no X11 paths, no layer-shell, no app-registered global shortcuts (GNOME custom keybinding instead). `install.sh` must never touch other keybindings — Flameshot stays on `Print` (`custom1`).
+- Wayland only: no X11 paths, no layer-shell, no app-registered global shortcuts (GNOME custom keybinding instead). `install.sh` and the Settings window must never touch other keybindings (Flameshot was uninstalled on 2026-10-30; its token now lives in our config.ini, the Flameshot fallback stays for other machines).
 - App CSS is registered at `STYLE_PROVIDER_PRIORITY_USER + 100`: the WhiteSur theme's `~/.config/gtk-4.0/gtk.css` (USER priority) otherwise restyles the overlay.
 - PyGObject: call `gi.require_foreign("cairo")` before using cairo in GTK draw funcs; `EventControllerLegacy`'s `event` argument arrives as `None` — use `controller.get_current_event()`; `Gdk.Clipboard` has no `set_texture`.
 - Toolbar icons are vendored Lucide SVGs in `screen_capture/icons/` (ISC), recoloured by `icons.icon_svg`.
 - `scripts/spike_*.py` are throwaway measurement scripts, not part of the app.
+- README images: regenerate with `python3 scripts/readme_shots.py` (real UI over a synthetic backdrop; it refuses to write an overlay shot unless sampled pixels match the fake backdrop, because a capture taken before the fullscreen overlay maps contains the real screen). Never put real screen captures in `docs/images/`.
